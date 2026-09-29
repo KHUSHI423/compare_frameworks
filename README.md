@@ -1421,3 +1421,63 @@ Overall, this project demonstrates that the meaningful difference between these 
 > **How much does the framework abstract, how explicit is the application code, and how much architectural control remains with the developer?**
 
 These observations are based on the implementations, parity tests, code footprint, and Locust workloads in this repository and should not be treated as universal rankings of the frameworks.
+
+
+The test suites are testing **6 main categories** of functionality and performance across Django, FastAPI, and Flask:
+
+---
+
+### 1. User Authentication & Security (`/auth/*`)
+* **User Signup (`POST /auth/signup`)**:
+  * **Success**: Tests creating a new user account (expects `HTTP 201 Created` and `{"id", "username", "email"}`).
+  * **Duplicate Prevention**: Tests registering a username/email that already exists (expects `HTTP 409 Conflict`).
+* **User Login (`POST /auth/login`)**:
+  * Tests valid credential verification and JWT token generation (expects `HTTP 200 OK` with `access_token`).
+  * Tests invalid password handling (expects `HTTP 401 Unauthorized`).
+* **Profile Lookup (`GET /auth/me`)**:
+  * Tests retrieving profile data using a Bearer token (expects `HTTP 200 OK`).
+  * Tests requests with missing or expired tokens (expects `HTTP 401 Unauthorized`).
+
+---
+
+### 2. Board Management & Ownership Authorization (`/boards/*`)
+* **Board Creation (`POST /boards`)**:
+  * Tests creating boards with valid titles.
+  * Tests input validation (rejecting empty or missing titles with `HTTP 400/422`).
+* **Board Listing & Pagination (`GET /boards`)**:
+  * Tests retrieving boards owned *only* by the logged-in user.
+  * Tests pagination parameters (`?page=1&page_size=10`).
+* **Ownership Security (`GET /boards/{id}` & `DELETE /boards/{id}`)**:
+  * Tests that a user can access and delete their own boards.
+  * **Access Control**: Tests that attempting to read or delete a board owned by *another* user returns `HTTP 403 Forbidden` (not `200` or `404`).
+
+---
+
+### 3. Task Operations & Filtering (`/boards/{id}/tasks/*`)
+* **Task Creation (`POST /boards/{id}/tasks`)**:
+  * Tests adding tasks with titles, descriptions, and statuses (`todo`, `in_progress`, `done`).
+  * Tests invalid status values (rejects strings like `"invalid_status"` with `HTTP 400/422`).
+* **Task Filtering (`GET /boards/{id}/tasks`)**:
+  * Tests filtering tasks by status (e.g. `?status=done`).
+* **Task Update & Deletion (`PATCH` & `DELETE`)**:
+  * Tests updating task status from `todo` to `in_progress` or `done`.
+  * Tests deleting tasks under an owned board.
+
+---
+
+### 4. File Uploads & Data Streaming
+* **File Attachments (`POST /boards/{id}/attachment`)**:
+  * Tests uploading binary/text files to a board (multipart form uploads) and saving them securely.
+* **CSV Task Export (`GET /boards/{id}/export`)**:
+  * Tests querying all board tasks and generating/streaming a downloadable CSV file (`text/csv`).
+
+---
+
+### 5. Cross-Framework API Parity & Consistency
+* Verifies that **Django, FastAPI, and Flask return identical HTTP status codes and JSON keys** for the exact same input scenarios, eliminating framework default differences.
+
+---
+
+### 6. Concurrency & Performance Load (Locust Benchmarks)
+* **Requests Per Second (RPS)**: Tests how many requests per second each framework handles under continuous load.
+* **Latency (Response Time)**: Measures average and 95th-percentile response latency (in milliseconds) under concurrent user traffic.
