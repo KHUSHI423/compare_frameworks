@@ -16,6 +16,7 @@ class Board(models.Model):
 
     class Meta:
         db_table = "boards"
+        ordering = ['id']
 
     def __str__(self):
         return self.title
@@ -44,6 +45,7 @@ class Task(models.Model):
 
     class Meta:
         db_table = "tasks"
+        ordering = ['id']
 
     def __str__(self):
         return self.title

@@ -1,9 +1,8 @@
 # fastapi_app/app/models.py
 from sqlalchemy import Column, Integer, String, DateTime, Text, Enum, ForeignKey, Date, func
-from sqlalchemy.orm import declarative_base, relationship
+from sqlalchemy.orm import relationship
+from .database import Base
 import enum
-
-Base = declarative_base()
 
 class TaskStatus(str, enum.Enum):
     todo = "todo"

@@ -1,6 +1,6 @@
 # flask_app/app/routes/auth.py
 from flask import Blueprint, request, jsonify
-from .auth import get_password_hash, create_access_token, verify_password, jwt_required
+from ..auth import get_password_hash, create_access_token, verify_password, jwt_required
 from ..extensions import db
 from ..models import User
 
@@ -9,7 +9,10 @@ auth_bp = Blueprint('auth', __name__)
 @auth_bp.route('/signup', methods=['POST'])
 def signup():
     data = request.get_json()
-    if not data or not all(k in data for k in ['username', 'email', 'password']):
+    if not isinstance(data, dict) or not all(
+        isinstance(data.get(key), str) and data[key].strip()
+        for key in ['username', 'email', 'password']
+    ):
         return jsonify({"error": "Missing fields"}), 400
         
     if User.query.filter((User.username == data['username']) | (User.email == data['email'])).first():
@@ -27,6 +30,8 @@ def signup():
 @auth_bp.route('/login', methods=['POST'])
 def login():
     data = request.get_json()
+    if not isinstance(data, dict):
+        return jsonify({"error": "Incorrect credentials"}), 401
     user = User.query.filter_by(username=data.get('username')).first()
     
     if not user or not verify_password(data.get('password', ''), user.hashed_password):

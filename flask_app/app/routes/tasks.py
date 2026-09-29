@@ -1,6 +1,7 @@
+from datetime import date
+
 from flask import Blueprint, request, jsonify
-from sqlalchemy import func
-from .auth import jwt_required
+from ..auth import jwt_required
 from ..extensions import db
 from ..models import Board, Task, TaskStatus
 from ..schemas import TaskSchema, PaginatedSchema
@@ -18,14 +19,20 @@ def create_task(board_id, current_user=None):
         return jsonify({"error": "Board not found or not owned"}), 404
         
     data = request.get_json()
-    if not data or 'title' not in data:
+    if not isinstance(data, dict) or not isinstance(data.get('title'), str) or not data['title'].strip():
         return jsonify({"error": "Title is required"}), 400
-        
+
+    try:
+        status = TaskStatus(data.get('status', TaskStatus.todo.value))
+        due_date = date.fromisoformat(data['due_date']) if data.get('due_date') else None
+    except (TypeError, ValueError):
+        return jsonify({"error": "Invalid status or due_date"}), 400
+
     task = Task(
-        title=data['title'],
+        title=data['title'].strip(),
         description=data.get('description'),
-        status=data.get('status', 'todo'),
-        due_date=data.get('due_date'),
+        status=status,
+        due_date=due_date,
         board_id=board_id
     )
     db.session.add(task)
@@ -44,8 +51,11 @@ def list_tasks(board_id, current_user=None):
     status_filter = request.args.get('status')
     
     query = Task.query.filter_by(board_id=board_id)
-    if status_filter and status_filter in ['todo', 'in_progress', 'done']:
-        query = query.filter_by(status=TaskStatus[status_filter])
+    if status_filter:
+        try:
+            query = query.filter_by(status=TaskStatus(status_filter))
+        except ValueError:
+            return jsonify({"error": "Invalid status"}), 400
         
     total = query.count()
     items = query.offset((page-1)*page_size).limit(page_size).all()
@@ -69,6 +79,26 @@ def update_task(board_id, task_id, current_user=None):
         return jsonify({"error": "Task not found"}), 404
         
     data = request.get_json()
+    if not isinstance(data, dict):
+        return jsonify({"error": "Invalid task data"}), 400
+
+    if 'title' in data and (
+        not isinstance(data['title'], str) or not data['title'].strip()
+    ):
+        return jsonify({"error": "Title is required"}), 400
+    if 'title' in data:
+        data['title'] = data['title'].strip()
+    if 'status' in data:
+        try:
+            data['status'] = TaskStatus(data['status'])
+        except (TypeError, ValueError):
+            return jsonify({"error": "Invalid status"}), 400
+    if 'due_date' in data and data['due_date'] is not None:
+        try:
+            data['due_date'] = date.fromisoformat(data['due_date'])
+        except (TypeError, ValueError):
+            return jsonify({"error": "Invalid due_date"}), 400
+
     for key in ['title', 'description', 'status', 'due_date']:
         if key in data:
             setattr(task, key, data[key])

@@ -6,7 +6,12 @@ from sqlalchemy import select
 
 from ..database import get_db
 from ..models import User
-from ..auth import get_password_hash, create_access_token, get_current_user
+from ..auth import (
+    create_access_token,
+    get_current_user,
+    get_password_hash,
+    verify_password,
+)
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
@@ -14,6 +19,12 @@ class UserCreate(BaseModel):
     username: str
     email: EmailStr
     password: str
+
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
 
 class TokenResponse(BaseModel):
     access_token: str
@@ -37,13 +48,16 @@ async def signup(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
     return {"id": new_user.id, "username": new_user.username, "email": new_user.email}
 
 @router.post("/login")
-async def login(username: str, password: str, db: AsyncSession = Depends(get_db)):
-    # Note: For benchmark simplicity we use query params or form data. 
-    # In production use OAuth2PasswordRequestForm. Here we keep it simple for curl testing.
-    result = await db.execute(select(User).where(User.username == username))
+async def login(
+    credentials: LoginRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(User).where(User.username == credentials.username)
+    )
     user = result.scalar_one_or_none()
     
-    if not user or not pwd_context.verify(password, user.hashed_password):
+    if not user or not verify_password(credentials.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Incorrect username or password")
         
     token = create_access_token(data={"sub": user.username})

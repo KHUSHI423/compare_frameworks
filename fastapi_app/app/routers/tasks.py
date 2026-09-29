@@ -29,7 +29,7 @@ async def create_task(
     await db.refresh(task)
     return task
 
-@router.get("", response_model=PaginatedResponse)
+@router.get("", response_model=PaginatedResponse[TaskResponse])
 async def list_tasks(
     board_id: int,
     page: int = Query(1, ge=1),

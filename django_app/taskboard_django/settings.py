@@ -1,4 +1,3 @@
-AUTH_USER_MODEL = 'users.User'
 import os
 from pathlib import Path
 
@@ -50,7 +49,7 @@ REST_FRAMEWORK = {
     ),
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 10,
-    'EXCEPTION_HANDLER': 'boards.utils.custom_exception_handler',  # We'll create this later
+    'DEFAULT_PAGINATION_CLASS': 'boards.pagination.StandardPagination',
 }
 
 SIMPLE_JWT = {

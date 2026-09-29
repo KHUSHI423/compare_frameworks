@@ -2,10 +2,16 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, Asyn
 from sqlalchemy.orm import declarative_base
 from .config import settings
 
+database_url = settings.DATABASE_URL
+if database_url.startswith("sqlite:///"):
+    database_url = database_url.replace(
+        "sqlite:///", "sqlite+aiosqlite:///", 1
+    )
+
 # SQLite requires check_same_thread=False in sync mode, 
 # but for async we use StaticPool or just standard async URL
 engine = create_async_engine(
-    settings.DATABASE_URL.replace("sqlite:///", "sqlite+aiosqlite:///"),
+    database_url,
     echo=False,
     future=True
 )

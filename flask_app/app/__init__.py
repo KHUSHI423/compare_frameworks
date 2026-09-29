@@ -11,6 +11,8 @@ def create_app(config_class=Config):
     app.config.from_object(config_class)
 
     init_extensions(app)
+    with app.app_context():
+        db.create_all()
 
     @app.errorhandler(400)
     @app.errorhandler(422)

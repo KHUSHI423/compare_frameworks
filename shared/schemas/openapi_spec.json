@@ -1,0 +1,208 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Taskboard Benchmark API",
+    "description": "API specification for Taskboard framework comparison benchmark across Django, FastAPI, and Flask.",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/auth/signup": {
+      "post": {
+        "summary": "Register a new user",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["username", "email", "password"],
+                "properties": {
+                  "username": { "type": "string" },
+                  "email": { "type": "string", "format": "email" },
+                  "password": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "User created" },
+          "409": { "description": "Username or email already exists" }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "summary": "Authenticate and return JWT access token",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["username", "password"],
+                "properties": {
+                  "username": { "type": "string" },
+                  "password": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Successful login" },
+          "401": { "description": "Invalid credentials" }
+        }
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "summary": "Get current user profile",
+        "responses": {
+          "200": { "description": "Current user object" },
+          "401": { "description": "Unauthorized" }
+        }
+      }
+    },
+    "/boards": {
+      "get": {
+        "summary": "List owned boards with pagination",
+        "parameters": [
+          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "page_size", "in": "query", "schema": { "type": "integer", "default": 10 } }
+        ],
+        "responses": {
+          "200": { "description": "Paginated list of boards" }
+        }
+      },
+      "post": {
+        "summary": "Create a new board",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["title"],
+                "properties": {
+                  "title": { "type": "string", "minLength": 1, "maxLength": 100 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Board created" }
+        }
+      }
+    },
+    "/boards/{board_id}": {
+      "get": {
+        "summary": "Get board by ID",
+        "parameters": [
+          { "name": "board_id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "Board details" },
+          "403": { "description": "Forbidden" },
+          "404": { "description": "Board not found" }
+        }
+      },
+      "delete": {
+        "summary": "Delete board by ID",
+        "parameters": [
+          { "name": "board_id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "204": { "description": "Board deleted" },
+          "403": { "description": "Forbidden" },
+          "404": { "description": "Board not found" }
+        }
+      }
+    },
+    "/boards/{board_id}/attachment": {
+      "post": {
+        "summary": "Upload file attachment to board",
+        "parameters": [
+          { "name": "board_id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "Attachment uploaded" },
+          "404": { "description": "Board not found" }
+        }
+      }
+    },
+    "/boards/{board_id}/export": {
+      "get": {
+        "summary": "Export board tasks as CSV",
+        "parameters": [
+          { "name": "board_id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "CSV stream" },
+          "404": { "description": "Board not found" }
+        }
+      }
+    },
+    "/boards/{board_id}/tasks": {
+      "get": {
+        "summary": "List tasks for a board",
+        "parameters": [
+          { "name": "board_id", "in": "path", "required": true, "schema": { "type": "integer" } },
+          { "name": "status", "in": "query", "schema": { "type": "string", "enum": ["todo", "in_progress", "done"] } }
+        ],
+        "responses": {
+          "200": { "description": "Paginated list of tasks" }
+        }
+      },
+      "post": {
+        "summary": "Create a task under board",
+        "parameters": [
+          { "name": "board_id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["title"],
+                "properties": {
+                  "title": { "type": "string" },
+                  "description": { "type": "string" },
+                  "status": { "type": "string", "enum": ["todo", "in_progress", "done"], "default": "todo" },
+                  "due_date": { "type": "string", "format": "date" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Task created" }
+        }
+      }
+    },
+    "/boards/{board_id}/tasks/{task_id}": {
+      "patch": {
+        "summary": "Update task",
+        "parameters": [
+          { "name": "board_id", "in": "path", "required": true, "schema": { "type": "integer" } },
+          { "name": "task_id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "Task updated" }
+        }
+      },
+      "delete": {
+        "summary": "Delete task",
+        "parameters": [
+          { "name": "board_id", "in": "path", "required": true, "schema": { "type": "integer" } },
+          { "name": "task_id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "204": { "description": "Task deleted" }
+        }
+      }
+    }
+  }
+}

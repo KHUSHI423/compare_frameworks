@@ -1,14 +1,24 @@
 # django_app/users/views.py
+from django.db.models import Q
 from rest_framework import status, generics
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .serializers import UserSignupSerializer, UserMeSerializer
+from .models import User
 
 class SignupView(generics.CreateAPIView):
     serializer_class = UserSignupSerializer
     
     def create(self, request, *args, **kwargs):
+        username = request.data.get("username")
+        email = request.data.get("email")
+        if username and email:
+            if User.objects.filter(Q(username=username) | Q(email=email)).exists():
+                return Response(
+                    {"error": "Username or email already exists"}, 
+                    status=status.HTTP_409_CONFLICT
+                )
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()

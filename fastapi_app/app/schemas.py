@@ -1,7 +1,8 @@
 from pydantic import BaseModel, Field
-from typing import Optional, List
+from typing import Generic, Optional, TypeVar
 from datetime import date, datetime
 from enum import Enum
+from pydantic import BaseModel
 
 class TaskStatus(str, Enum):
     todo = "todo"
@@ -25,8 +26,11 @@ class TaskUpdate(BaseModel):
     due_date: Optional[date] = None
 
 # --- Response Schemas ---
-class PaginatedResponse(BaseModel):
-    items: list
+ItemType = TypeVar("ItemType")
+
+
+class PaginatedResponse(BaseModel, Generic[ItemType]):
+    items: list[ItemType]
     total: int
     page: int
     page_size: int

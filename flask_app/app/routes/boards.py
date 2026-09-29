@@ -1,6 +1,10 @@
-from flask import Blueprint, request, jsonify
-from sqlalchemy import func
-from .auth import jwt_required
+import csv
+import io
+import os
+
+from flask import Blueprint, jsonify, request, send_file
+
+from ..auth import jwt_required
 from ..extensions import db
 from ..models import Board
 from ..schemas import BoardSchema, PaginatedSchema
@@ -9,20 +13,14 @@ boards_bp = Blueprint('boards', __name__)
 board_schema = BoardSchema()
 boards_schema = BoardSchema(many=True)
 paginated_schema = PaginatedSchema()
-import os
-import csv
-import io
-from flask import Blueprint, request, jsonify, send_file
-from .auth import jwt_required
-from ..extensions import db
-from ..models import Board, Task, Attachment
+from ..models import Attachment, Task
 
 UPLOAD_DIR = os.path.join(os.getcwd(), 'uploads')
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 # ... [Previous Board Routes] ...
 
-@boards_bp.route('/<int:board_id>/attachment', methods=['POST'])
+@boards_bp.route('/boards/<int:board_id>/attachment', methods=['POST'])
 @jwt_required
 def upload_attachment(board_id, current_user=None):
     board = Board.query.filter_by(id=board_id, owner_id=current_user.id).first()
@@ -50,7 +48,7 @@ def upload_attachment(board_id, current_user=None):
 
     return jsonify({"url": f"/uploads/{safe_filename}", "filename": file.filename})
 
-@boards_bp.route('/<int:board_id>/export', methods=['GET'])
+@boards_bp.route('/boards/<int:board_id>/export', methods=['GET'])
 @jwt_required
 def export_tasks_csv(board_id, current_user=None):
     board = Board.query.filter_by(id=board_id, owner_id=current_user.id).first()
@@ -77,10 +75,10 @@ def export_tasks_csv(board_id, current_user=None):
 @jwt_required
 def create_board(current_user=None):
     data = request.get_json()
-    if not data or 'title' not in data:
+    if not isinstance(data, dict) or not isinstance(data.get('title'), str) or not data['title'].strip():
         return jsonify({"error": "Title is required"}), 400
         
-    board = Board(title=data['title'], owner_id=current_user.id)
+    board = Board(title=data['title'].strip(), owner_id=current_user.id)
     db.session.add(board)
     db.session.commit()
     return jsonify(board_schema.dump(board)), 201
@@ -105,7 +103,7 @@ def list_boards(current_user=None):
 @boards_bp.route('/boards/<int:board_id>', methods=['GET'])
 @jwt_required
 def get_board(board_id, current_user=None):
-    board = Board.query.get(board_id)
+    board = db.session.get(Board, board_id)
     if not board:
         return jsonify({"error": "Board not found"}), 404
     if board.owner_id != current_user.id:
@@ -115,7 +113,7 @@ def get_board(board_id, current_user=None):
 @boards_bp.route('/boards/<int:board_id>', methods=['DELETE'])
 @jwt_required
 def delete_board(board_id, current_user=None):
-    board = Board.query.get(board_id)
+    board = db.session.get(Board, board_id)
     if not board:
         return jsonify({"error": "Board not found"}), 404
     if board.owner_id != current_user.id:
